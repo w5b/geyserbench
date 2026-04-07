@@ -8,4 +8,7 @@ name = "Endpoint 1"
 url = "http://fra.binary.shreder.xyz:9991/"
 kind = "shreder"
 
-
+[[endpoint]]
+name = "Jetstream"
+url = "http://fra.jetstream.orbitflare.com"
+kind = "jetstream"

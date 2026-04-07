@@ -13,3 +13,5 @@ kind = "shreder"
 name = "Corvus aRpc"
 url = "http://arpc.fra.corvus-labs.io:20202"
 kind = "arpc"
+
+transactions = 10000

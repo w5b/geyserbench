@@ -12,4 +12,10 @@ kind = "shreder"
 [[endpoint]]
 name = "Corvus aRpc"
 url = "http://arpc.fra.corvus-labs.io:20202"
-kind = "arpc"
+kind = "arpc"   
+
+[[endpoint]]
+name = "OrbitFlare JetStream"
+url = "http://fra.jetstream.orbitflare.com:80"
+kind = "jetstream"   
+

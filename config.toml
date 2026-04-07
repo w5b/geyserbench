@@ -5,10 +5,7 @@ commitment = "processed"
 
 [[endpoint]]
 name = "Endpoint 1"
-url = "http://arpc.fra.corvus-labs.io:20202"
-kind = "arpc"
+url = "http://fra.binary.shreder.xyz:9991/"
+kind = "shreder"
 
-[[endpoint]]
-name = "Endpoint 2"
-url = "http://fra.corvus-labs.io:10101"
-kind = "yellowstone"
+

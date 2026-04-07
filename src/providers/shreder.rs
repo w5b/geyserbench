@@ -1,5 +1,6 @@
 use futures::{SinkExt, channel::mpsc::unbounded};
 use futures_util::stream::StreamExt;
+use solana_client::rpc_response::transaction::versioned::VersionedTransaction;
 use solana_pubkey::Pubkey;
 use std::{collections::HashMap, error::Error, sync::atomic::Ordering};
 use tokio::task;
@@ -19,12 +20,12 @@ use super::{
 
 #[allow(clippy::all, dead_code)]
 pub mod shreder {
-    include!(concat!(env!("OUT_DIR"), "/shredstream.rs"));
+    include!(concat!(env!("OUT_DIR"), "/shreder_binary.rs"));
 }
 
 use shreder::{
-    SubscribeRequestFilterTransactions, SubscribeTransactionsRequest,
-    shreder_service_client::ShrederServiceClient,
+    SubscribeBinaryTransactionsRequest, SubscribeRequestFilterBinaryTransactions,
+    shreder_binary_service_client::ShrederBinaryServiceClient,
 };
 
 pub struct ShrederProvider;
@@ -72,27 +73,28 @@ async fn process_shredstream_endpoint(
 
     info!(endpoint = %endpoint_name, url = %endpoint_url, "Connecting");
 
-    let mut client = ShrederServiceClient::connect(endpoint_url.clone())
+    let mut client = ShrederBinaryServiceClient::connect(endpoint_url.clone())
         .await
         .unwrap_or_else(|err| fatal_connection_error(&endpoint_name, err));
     info!(endpoint = %endpoint_name, "Connected");
 
-    let mut transactions: HashMap<String, SubscribeRequestFilterTransactions> =
+    let mut transactions: HashMap<String, SubscribeRequestFilterBinaryTransactions> =
         HashMap::with_capacity(1);
     transactions.insert(
         String::from("account"),
-        SubscribeRequestFilterTransactions {
+        SubscribeRequestFilterBinaryTransactions {
             account_exclude: vec![],
             account_include: vec![],
             account_required: vec![config.account.clone()],
         },
     );
 
-    let request = SubscribeTransactionsRequest { transactions };
-    let (mut subscribe_tx, subscribe_rx) = unbounded::<shreder::SubscribeTransactionsRequest>();
+    let request = SubscribeBinaryTransactionsRequest { transactions };
+    let (mut subscribe_tx, subscribe_rx) =
+        unbounded::<shreder::SubscribeBinaryTransactionsRequest>();
     subscribe_tx.send(request).await?;
     let mut stream = client
-        .subscribe_transactions(subscribe_rx)
+        .subscribe_binary_transactions(subscribe_rx)
         .await?
         .into_inner();
 
@@ -115,12 +117,14 @@ async fn process_shredstream_endpoint(
                 let Some(Ok(msg)) = message else { continue };
                 let Some(tx_update) = msg.transaction.as_ref() else { continue };
                 let Some(tx) = tx_update.transaction.as_ref() else { continue };
-                let Some(txn_msg) = tx.message.as_ref() else { continue };
 
-                let has_account = txn_msg
-                    .account_keys
+                let versioned_tx =
+                 bincode::deserialize::<VersionedTransaction>(&tx.binary_transaction).unwrap();
+
+                let has_account = versioned_tx
+                .message.static_account_keys()
                     .iter()
-                    .any(|k| k == account_pubkey.as_ref());
+                    .any(|k| *k == account_pubkey);
                 if !has_account { continue }
 
                 let wallclock = get_current_timestamp();
